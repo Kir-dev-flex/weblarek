@@ -57,7 +57,8 @@ console.log('А теперь валидация с заполненным пок
 
 console.log("---------------------");
 
-const api = new Api("https://larek-api.nomoreparties.co/api/weblarek");
+const apiUrl = import.meta.env.VITE_API_ORIGIN
+const api = new Api(apiUrl);
 const larek = new ProductApi(api);
 
 larek.getProducts()
@@ -81,3 +82,5 @@ larek.getProducts()
     const catalogFromServer = new Catalog(await larek.getProducts(), null)
     console.log("Каталог с сервера: ", catalogFromServer)
     //Пришло 10 штук, все работает
+
+    
