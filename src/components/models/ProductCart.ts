@@ -1,16 +1,19 @@
 import {IProduct} from "../../types/index.ts"
+import {IEvents} from '../base/Events.ts'
 
 export class ProductCart {
     private productList: IProduct[];
 
-    constructor(productList? : IProduct[]) {
+    constructor(protected events: IEvents, productList? : IProduct[]) {
         this.productList = productList || []
     }
     addProduct(product: IProduct) :void {
         this.productList.push(product)
+        this.events.emit('cart.productAdded', {product})
     }
     removeProduct(product: IProduct) :void {
         this.productList = this.productList.filter(item => item.id !== product.id)
+        this.events.emit('cart.productRemoved', {product})
     }
     getProductsQuantity() :number {
         return this.productList.length
@@ -37,5 +40,6 @@ export class ProductCart {
     }
     clear() :void {
         this.productList = []
+        this.events.emit('cart.cleared')
     }
 }
