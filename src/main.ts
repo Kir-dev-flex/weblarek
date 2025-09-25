@@ -40,7 +40,7 @@ const templateBasket = ensureElement<HTMLTemplateElement>('#basket')
 const templateCardBasket = ensureElement<HTMLTemplateElement>('#card-basket')
 
 // Презентер
-const apiUrl = import.meta.env.VITE_API_ORIGIN //Всякие штуки чтобы получить каталог с сервака
+const apiUrl = import.meta.env.VITE_API_ORIGIN 
 const api = new Api(apiUrl);
 const larek = new ProductApi(events, api);
 
@@ -230,7 +230,7 @@ events.on('contacts.submit', async () => {
         customerModel.clearData();
         currentFormStep = null;
     } catch (e) {
-        // На проде показали бы алерт/ошибку в форме
+        // при ошибке показали бы алерт/ошибку в форме
         console.error('Order error', e);
     }
 });
