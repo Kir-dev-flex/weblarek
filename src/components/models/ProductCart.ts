@@ -9,11 +9,11 @@ export class ProductCart {
     }
     addProduct(product: IProduct) :void {
         this.productList.push(product)
-        this.events.emit('cart.productAdded', {product})
+        this.events.emit('basket:change', { product })
     }
     removeProduct(product: IProduct) :void {
         this.productList = this.productList.filter(item => item.id !== product.id)
-        this.events.emit('cart.productRemoved', {product})
+        this.events.emit('basket:change', { product })
     }
     getProductsQuantity() :number {
         return this.productList.length
@@ -40,6 +40,6 @@ export class ProductCart {
     }
     clear() :void {
         this.productList = []
-        this.events.emit('cart.cleared')
+        this.events.emit('basket:change')
     }
 }

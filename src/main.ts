@@ -44,8 +44,8 @@ const apiUrl = import.meta.env.VITE_API_ORIGIN
 const api = new Api(apiUrl);
 const larek = new ProductApi(events, api);
 
-//Модель каталога
-const productsModel = new Catalog(events, await larek.getProducts(), null)
+//Модель каталога (инициализируем пустой, данные загрузим ниже)
+const productsModel = new Catalog(events)
 
 // Единый экземпляр модалки и подписка на закрытие
 const modal = new Modal(events, modalContainer);
@@ -60,77 +60,31 @@ header.counter = cartModel.getProductsQuantity();
 // Модель покупателя
 const customerModel = new Customer(events);
 
-// Текущее состояние открытой превью-карты
-let currentPreviewCard: CardPreview | null = null;
-let currentPreviewProductId: string | null = null;
-let currentFormStep: 'order' | 'contacts' | null = null;
+// Единственные экземпляры представлений, переиспользуются при каждом открытии
+const basketView = new Basket(events, cloneTemplate<HTMLElement>(templateBasket));
+const orderView = new Order(events, cloneTemplate<HTMLElement>(templateOrder));
+const contactsView = new Contacts(events, cloneTemplate<HTMLElement>(templateContacts));
+const successView = new Success(events, cloneTemplate<HTMLElement>(templateSuccess));
 
-// Обработка добавления в корзину из превью
-events.on('card.addToBasket', (data: { id: string }) => {
+
+// Обработка добавления в корзину
+events.on('basket.add', (data: { id: string }) => {
     const product = productsModel.getProductById(data.id) as IProduct;
     if (product) {
         cartModel.addProduct(product);
-        // если модалка открыта с этим товаром, обновляю состояние кнопки через модель представления
-        if (currentPreviewProductId === product.id && currentPreviewCard) {
-            (currentPreviewCard as any).inCart = true;
-        }
     }
 });
 
-// Обработка удаления из корзины из превью
-events.on('card.removeFromBasket', (data: { id: string }) => {
+// Обработка удаления из корзины
+events.on('basket.remove', (data: { id: string }) => {
     const product = productsModel.getProductById(data.id) as IProduct;
     if (product) {
         cartModel.removeProduct(product);
-        if (currentPreviewProductId === product.id && currentPreviewCard) {
-            (currentPreviewCard as any).inCart = false;
-        }
     }
 });
 
-// Обновление счётчика в хедере при изменениях корзины
-events.on('cart.productAdded', () => {
-    header.counter = cartModel.getProductsQuantity();
-});
-events.on('cart.productRemoved', () => {
-    header.counter = cartModel.getProductsQuantity();
-});
-events.on('cart.cleared', () => {
-    header.counter = cartModel.getProductsQuantity();
-});
-
-
-productsModel.setProductList(await larek.getProducts()) 
-events.on('productList.change', () => {
-    const gallery = new Gallery(galleryContainer);
-    const products = productsModel.getProducts();
-    const instances = products.map((item) => {
-        const node = cloneTemplate<HTMLElement>(templateCardCatalog);
-        const cardExample = new CardCatalog(events, node);
-
-        return cardExample.render(item);
-    });
-
-    gallery.render({catalog: instances});
-});
-
-events.on('card.preview', (data: { id: string }) => {
-    const cardPreview = new CardPreview(events, cloneTemplate<HTMLElement>(templateCardPreview));
-    const product = productsModel.getProductById(data.id) as IProduct
-    productsModel.setChosenProduct(product)
-    const rendered = cardPreview.render({
-        ...product,
-        inCart: cartModel.getProductAvailability(product)
-    } as any);
-    currentPreviewCard = cardPreview;
-    currentPreviewProductId = product.id;
-    // открываем модалку и вставляем карточку
-    modal.open(rendered);
-})
-
-// Открытие корзины
-events.on('basket.open', () => {
-    const basketView = new Basket(events, cloneTemplate<HTMLElement>(templateBasket));
+// Единое событие изменения корзины на все случаи жизни
+events.on('basket:change', () => {
     const items = cartModel.getProductList();
     const itemViews = items.map((product, index) => {
         const node = cloneTemplate<HTMLElement>(templateCardBasket);
@@ -144,52 +98,64 @@ events.on('basket.open', () => {
     });
     basketView.items = itemViews;
     basketView.totalPrice = cartModel.getTotalPrice();
+    header.counter = cartModel.getProductsQuantity();
+});
+
+
+events.on('productList.change', () => {
+    const gallery = new Gallery(galleryContainer);
+    const products = productsModel.getProducts();
+    const instances = products.map((item) => {
+        const node = cloneTemplate<HTMLElement>(templateCardCatalog);
+        const cardExample = new CardCatalog(events, node);
+
+        return cardExample.render(item);
+    });
+
+    gallery.render({catalog: instances});
+});
+
+// Загружаем товары и инициируем первичную отрисовку каталога
+productsModel.setProductList(await larek.getProducts())
+
+events.on('card.preview', (data: { id: string }) => {
+    const cardPreview = new CardPreview(events, cloneTemplate<HTMLElement>(templateCardPreview));
+    const product = productsModel.getProductById(data.id) as IProduct
+    productsModel.setChosenProduct(product)
+    const rendered = cardPreview.render({
+        ...product,
+        inCart: cartModel.getProductAvailability(product)
+    } as any);
+    // открываем модалку и вставляем карточку
+    modal.open(rendered);
+})
+
+// Открытие корзины 
+events.on('basket.open', () => {
     modal.open(basketView.render());
 });
 
-// Удаление позиции из корзины через карточку корзины
-events.on('card.deleteFromBasket', (data: { id: string }) => {
-    const product = productsModel.getProductById(data.id) as IProduct;
-    if (product) {
-        cartModel.removeProduct(product);
-        const isBasketOpen = modalContainer.classList.contains('modal_active');
-        if (isBasketOpen) {
-            events.emit('basket.open');
-        }
-    }
-});
 
 events.on('basket.buy', () => {
-    const orderView = new Order(events, cloneTemplate<HTMLElement>(templateOrder));
     modal.open(orderView.render());
-    currentFormStep = 'order';
-
-    // Синхронизация формы с моделью покупателя
-    events.on('order.paymentMethod', (payload: { method: 'online' | 'cash', address: string }) => {
-        customerModel.setPaymentMethod(payload.method);
-        if (payload.address !== undefined) customerModel.setAdress(payload.address);
-    });
-    events.on('order.addressChange', (payload: { address: string }) => {
-        customerModel.setAdress(payload.address);
-    });
 });
 
-// Переход на форму контактов из формы заказа
-events.on('form.next', () => {
-    if (currentFormStep === 'order') {
-        const contactsView = new Contacts(events, cloneTemplate<HTMLElement>(templateContacts));
-        modal.open(contactsView.render());
-        currentFormStep = 'contacts';
-        return;
-    }
-    if (currentFormStep === 'contacts') {
-        const successView = new Success(events, cloneTemplate<HTMLElement>(templateSuccess));
-        successView.descriptionText = String(cartModel.getTotalPrice());
-        modal.open(successView.render());
-        cartModel.clear();
-        currentFormStep = null;
-    }
+events.on('order.submit', () => {
+    modal.open(contactsView.render());
 });
+
+events.on('order.paymentMethod', (payload: { method: 'online' | 'cash', address: string }) => {
+    customerModel.setPaymentMethod(payload.method);
+    if (payload.address !== undefined) customerModel.setAdress(payload.address);
+    const errs = customerModel.validateOrder();
+    events.emit('presenter.orderErrors', { errors: errs });
+});
+events.on('order.addressChange', (payload: { address: string }) => {
+    customerModel.setAdress(payload.address);
+    const errs = customerModel.validateOrder();
+    events.emit('presenter.orderErrors', { errors: errs });
+});
+
 
 events.on('success.close', () => {
     customerModel.clearData();
@@ -199,9 +165,13 @@ events.on('success.close', () => {
 // Синхронизация контактов с моделью покупателя
 events.on('contacts.emailChange', (payload: { email: string }) => {
     customerModel.setEmail(payload.email);
+    const errs = customerModel.validateContacts();
+    events.emit('presenter.contactsErrors', { errors: errs });
 });
 events.on('contacts.phoneChange', (payload: { phone: string }) => {
     customerModel.setPhone(payload.phone);
+    const errs = customerModel.validateContacts();
+    events.emit('presenter.contactsErrors', { errors: errs });
 });
 
 // Сабмит контактов: создаём заказ и по успеху показываем Success
@@ -223,15 +193,13 @@ events.on('contacts.submit', async () => {
     };
     try {
         await larek.createOrder(order);
-        const successView = new Success(events, cloneTemplate<HTMLElement>(templateSuccess));
         successView.descriptionText = String(total);
         modal.open(successView.render());
         cartModel.clear();
         customerModel.clearData();
-        currentFormStep = null;
     } catch (e) {
-        // при ошибке показали бы алерт/ошибку в форме
-        console.error('Order error', e);
+        const message = (e as Error)?.message || 'Ошибка оформления заказа';
+        events.emit('presenter.orderSubmitError', { message });
     }
 });
-events.emit('productList.change', {productList: productsModel.getProducts()})
+

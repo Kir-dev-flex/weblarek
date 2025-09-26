@@ -23,12 +23,7 @@ export class FormBase  extends Component<OrderData> {
             || ensureElement<HTMLButtonElement>('.order__button', this.container)
         this.errorsElement = ensureElement<HTMLElement>('.form__errors', this.container)
 
-        this.formElement.addEventListener('submit', (e) => {
-            e.preventDefault();
-            if (!this.nextButton.disabled) {
-                this.events.emit('form.next')
-            }
-        })
+        // Обработчик submit реализуется в конкретных формах (Order/Contacts)
     }
 
     set errors(value: string) {

@@ -24,11 +24,8 @@ export class Contacts extends FormBase {
     private updateNextState() {
         const email = this.emailInput.value.trim();
         const phone = this.phoneInput.value.trim();
-        let error = '';
-        if (!email) error = 'Заполните поле Email';
-        else if (!phone) error = 'Заполните поле телефона';
-        this.errors = error;
-        this.nextEnabled = !error;
+        const valid = email.length > 0 && phone.length > 0;
+        this.nextEnabled = valid;
     }
 
     render(data?: Partial<unknown>): HTMLElement {
@@ -39,6 +36,13 @@ export class Contacts extends FormBase {
             if (!this.nextButton.disabled) {
                 this.events.emit('contacts.submit');
             }
+        });
+        this.events.on('presenter.contactsErrors', (payload: { errors: Record<string, string> }) => {
+            const { errors } = payload;
+            this.errors = errors.email || errors.phone || '';
+            const email = this.emailInput.value.trim();
+            const phone = this.phoneInput.value.trim();
+            this.nextEnabled = !errors.email && !errors.phone && email.length > 0 && phone.length > 0;
         });
         return el;
     }

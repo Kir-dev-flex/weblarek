@@ -134,21 +134,19 @@ Presenter - презентер содержит основную логику п
 `setProductList` установит новый массив как каталог товаров
 
 #### Класс ProductCart
-Содержит в себе массив товаров, добавленных пользователем в корзину.
-
-Конструктор принимает список товаров и добавляет их в корзину, иначе будет пустым
+Содержит массив товаров корзины и инкапсулирует операции над ней. Любое изменение корзины порождает единое событие `basket:change`.
 
 Поля:
-`productList: IProduct[];` хранит массив товаров
+`productList: IProduct[]` — текущее содержимое корзины
 
-Методы: 
-`addProduct(product: IProduct) :void` Добавит продукт в корзину, принимает объект продукта IProduct
-`removeProduct(product: IProduct) :void` Удалит продукт из корзины, принимает объект продукта IProduct
-`getProductsQuantity() :number` Вернет количество продуктов в корзине, ничего не принимает
-`getTotalPrice() :number` Вернет общую стоимость товаров в корзине, ничего не принимает
-`getProductAvailability (product :IProduct) :boolean` Принимает продукт IProduct и вернет булево значение о его наличии
-`getProductList() :IProduct[]` Вернет список товаров корзины, ничего не принимает
-`clear() :void` Очищает корзину, ничего не принимает
+Методы:
+`addProduct(product: IProduct): void` — добавляет товар в корзину и эмитит `basket:change`
+`removeProduct(product: IProduct): void` — удаляет товар и эмитит `basket:change`
+`getProductsQuantity(): number` — возвращает количество товаров
+`getTotalPrice(): number` — возвращает суммарную стоимость
+`getProductAvailability(product: IProduct): boolean` — проверяет наличие товара в корзине
+`getProductList(): IProduct[]` — возвращает список товаров
+`clear(): void` — очищает корзину и эмитит `basket:change`
 
 #### Класс Customer
 Содержит в себе информацию о методе оплаты покупателя, его адрессе, почте и телефоне.
@@ -240,77 +238,126 @@ Presenter - презентер содержит основную логику п
     set counter(value:number) принимает число и устанавливает его в качестве textContent элементу счетчика товаров в хедере.
 
 #### Class Modal
-Универсальное модальное окно, инкапсулирует поведение открытия/закрытия и замену контента.
+Универсальное модальное окно.
 
 Поля:
 `modalClose: HTMLButtonElement` — кнопка закрытия
-`modalContent: HTMLElement` — контейнер контента модалки
+`modalContent: HTMLElement` — контейнер контента
 
 Методы:
-`open(element: HTMLElement)` — вставляет element в контент и добавляет класс активности
-`close()` — снимает класс активности и очищает контент
+`open(element: HTMLElement)` — показать модалку с контентом
+`close()` — скрыть модалку и очистить контент
+`content` (setter) — заменить содержимое модалки
 
-События:
-Эмитит `modal.close` по клику на крестик, по нажатию Escape и по клику на оверлей.
+События: эмитит `modal.close` по крестику, Escape и клику вне контента.
 
 #### Class Gallery
-Обёртка над контейнером каталога; принимает список узлов карточек и вставляет их в `.gallery`.
+Обёртка каталога.
+
+Поля:
+`catalogElement: HTMLElement` — контейнер списка карточек
 
 Методы:
-`render({ catalog: HTMLElement[] })` — заменяет содержимое каталога переданной коллекцией карточек.
+`catalog` (setter) — заменяет дочерние элементы карточками
 
 #### Class CardBase
-Базовый класс карточек. Предоставляет сеттеры `id`, `title`, `price` и утилиту `setImage`.
+База карточек.
+
+Поля:
+`titleElement: HTMLElement`, `priceElement: HTMLElement`, `cardId: string`
+
+Методы/сеттеры:
+`id`, `title`, `price` — записывают значения в DOM; форматируют цену (или «Бесценно»)
 
 #### Class CardCatalog
-Карточка товара в каталоге. Отображает категорию и изображение, по клику эмитит `card.preview` с `id` товара.
+Карточка в каталоге.
+
+События: по клику эмитит `card.preview`.
 
 #### Class CardPreview
-Карточка товара в модалке. Отображает описание, цену, изображение и кнопку.
+Карточка в модалке превью.
 
-Особенности:
-- Если товар без цены — кнопка дизейбл и текст «Недоступно».
-- Если товар в корзине — кнопка «Удалить из корзины», иначе «В корзину».
-- По клику эмитит добавление/удаление и закрывает модалку.
+Поля: `descriptionElement`, `cardButtonElement`, `cardImageElement`, `priceElement`.
+
+События: по клику — `basket.add` или `basket.remove`, затем `modal.close`.
 
 #### Class CardBasket
-Компактная карточка в корзине. Показывает индекс, название и цену. Кнопка удаления эмитит `card.deleteFromBasket`.
+Компактная карточка корзины.
+
+Поля: `cardDelete: HTMLButtonElement`, `cardNumber: HTMLElement`.
+
+Событие: удаление — `basket.remove`.
 
 #### Class Basket
-Вью корзины. Рендерит список товарных позиций, общую цену и кнопку «Оформить».
+Вью корзины.
 
-Поведение:
-- При отсутствии товаров показывает «Корзина пуста», кнопку «Оформить» дизейблит.
-- Эмитит `basket.buy` по нажатию на кнопку оформления.
+Поля: `basketBuyButton: HTMLButtonElement`, `total: HTMLElement`, `basketList: HTMLElement`.
 
-#### Class FormBase
-База для форм. Ищет кнопку сабмита и область ошибок, управляет `errors` и `nextEnabled`, эмитит `form.next` при сабмите, если нет ошибок.
+Сеттеры:
+`items(HTMLElement[])` — рендерит список или «Корзина пуста», управляет доступностью кнопки
+`totalPrice(number)` — выводит сумму
+
+События: `basket.buy` по кнопке оформления.
 
 #### Class Order
-Форма шага 1. Содержит выбор способа оплаты и адрес доставки.
+Форма шага 1.
 
-Поведение:
-- Тогглит активное состояние кнопок оплаты.
-- Показывает ошибки «Выберите способ оплаты» или «Заполните поле адреса».
-- Разрешает «Далее» при валидности.
+Поля: `onlineButton`, `cashButton`, `paymentMethod`, `addressInput`.
 
-События:
-`order.paymentMethod` (method, address), `order.addressChange` (address)
+События: `order.paymentMethod`, `order.addressChange`, `order.submit`.
+
+Методы: валидация адреса и переключение активных кнопок оплаты.
 
 #### Class Contacts
-Форма шага 2. Поля email и phone. Валидирует непустые значения, управляет активностью «Оплатить» и эмитит `contacts.submit` при сабмите.
+Форма шага 2.
 
-События:
-`contacts.emailChange`, `contacts.phoneChange`, `contacts.submit`
+Поля: `emailInput`, `phoneInput`.
+
+События: `contacts.emailChange`, `contacts.phoneChange`, `contacts.submit`.
+
+Методы: простая валидация и управление активностью кнопки.
 
 #### Class Success
-Экран успеха. Показывает списанную сумму и эмитит `success.close` по кнопке.
+Экран завершения.
 
+Поля: `description`, `returnButton`.
+
+Сеттер: `descriptionText` — выводит сумму к списанию.
+
+Событие: `success.close` по кнопке.
+
+#### Class Api
+Обёртка над fetch.
+
+Поля: `baseUrl`, `options`.
+
+Методы: `get`, `post`, защищённый `handleResponse`.
+
+#### Class EventEmitter
+Брокер событий.
+
+Поля: `_events: Map<EventName, Set<Function>>`.
+
+Методы: `on`, `off`, `emit`, `onAll`, `offAll`, `trigger`.
+
+#### Class Catalog
+Каталог товаров.
+
+Поля: `productList: IProduct[]`, `chosenProduct: IProduct | null`.
+
+Методы: `getProducts`, `getProductById`, `setChosenProduct`, `getChosenProduct`, `setProductList` (эмитит `productList.change`).
+
+#### Class ProductApi
+API-слой каталога/заказа.
+
+Поля: `api: Api`.
+
+Методы: `getProducts` (эмитит `productList.fetched`), `createOrder` (эмитит `order.creating`).
 ### Презентер (src/main.ts)
 Презентер — точка координации приложения. Настраивает модели (каталог, корзина, покупатель), вьюхи (галерея, модалка, хедер) и связывает их событиями:
 
 - Загружает каталог через `ProductApi` и вызывает `Catalog.setProductList`, что приводит к перерисовке галереи.
 - Открывает превью по `card.preview`, устанавливает выбранный товар `Catalog.setChosenProduct`.
-- Управляет корзиной: добавление/удаление позиций, пересчёт счётчика в хедере, открытие/перерисовка корзины.
-- Запускает оформление: `basket.buy` → `Order`, `form.next` → `Contacts`, `contacts.submit` → вызов `createOrder` и показ `Success`, очистка корзины и данных покупателя.
+- Управляет корзиной: `basket.add`/`basket.remove` изменяют модель; единое `basket:change` пересобирает список, сумму и счётчик.
+- Запускает оформление: `basket.buy` → `Order`, `order.submit` → `Contacts`, `contacts.submit` → вызов `createOrder` и показ `Success`, очистка корзины и данных покупателя.
 - Управляет модалкой и её закрытием (крестик, Escape, клик по фону).

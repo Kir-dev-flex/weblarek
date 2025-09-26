@@ -47,14 +47,17 @@ export class Customer {
         this.phone = ""
         this.events.emit('customer.dataCleared')
     }
-    validateData(): string[] {
-    const errors: string[] = [];
+    validateOrder(): Record<string, string> {
+        const errors: Record<string, string> = {};
+        if (!this.paymentMethod) errors.paymentMethod = 'Выберите способ оплаты';
+        if (!this.adress) errors.adress = 'Заполните поле адреса';
+        return errors;
+    }
 
-    if (!this.paymentMethod) errors.push("paymentMethod");
-    if (!this.adress) errors.push("adress");
-    if (!this.email) errors.push("email");
-    if (!this.phone) errors.push("phone");
-this.events.emit('customer.validation', {errors});
-    return errors;
-}
+    validateContacts(): Record<string, string> {
+        const errors: Record<string, string> = {};
+        if (!this.email) errors.email = 'Заполните поле Email';
+        if (!this.phone) errors.phone = 'Заполните поле телефона';
+        return errors;
+    }
 }

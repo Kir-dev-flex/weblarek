@@ -33,13 +33,6 @@ export class Order extends FormBase {
     private updateNextState() {
         const address = this.addressInput.value.trim();
         const valid = Boolean(this.paymentMethod) && address.length > 0;
-        if (!this.paymentMethod) {
-            this.errors = 'Выберите способ оплаты';
-        } else if (address.length === 0) {
-            this.errors = 'Заполните поле адреса';
-        } else {
-            this.errors = '';
-        }
         this.nextEnabled = valid;
     }
 
@@ -56,6 +49,18 @@ export class Order extends FormBase {
         this.addressInput.addEventListener('input', () => {
             this.updateNextState();
             this.events.emit('order.addressChange', {address: this.addressInput.value});
+        });
+        // Явный submit: отправляем событие order.submit
+        this.formElement.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!this.nextButton.disabled) {
+                this.events.emit('order.submit');
+            }
+        });
+        this.events.on('presenter.orderErrors', (payload: { errors: Record<string, string> }) => {
+            const { errors } = payload;
+            this.errors = errors.paymentMethod || errors.adress || '';
+            this.nextEnabled = !errors.paymentMethod && !errors.adress && this.addressInput.value.trim().length > 0 && Boolean(this.paymentMethod);
         });
         return el;
     }

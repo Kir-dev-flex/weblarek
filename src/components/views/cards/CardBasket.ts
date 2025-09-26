@@ -12,7 +12,7 @@ export class CardBasket extends CardBase {
         this.cardNumber = ensureElement<HTMLElement>('.basket__item-index', this.container)
 
         this.cardDelete.addEventListener('click', () => {
-            this.events.emit('card.deleteFromBasket', {id: this.cardId})
+            this.events.emit('basket.remove', { id: this.cardId })
         })
     }
 

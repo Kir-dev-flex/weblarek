@@ -19,9 +19,9 @@ export class CardPreview extends CardBase {
 
         this.cardButtonElement.addEventListener('click', () => {
             if (this.isInCart) {
-                this.events.emit('card.removeFromBasket', {id: this.cardId})
+                this.events.emit('basket.remove', { id: this.cardId })
             } else {
-                this.events.emit('card.addToBasket', {id: this.cardId})
+                this.events.emit('basket.add', { id: this.cardId })
             }
             // Закрыть модалку после действия
             this.events.emit('modal.close')
