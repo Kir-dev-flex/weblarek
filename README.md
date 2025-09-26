@@ -326,13 +326,6 @@ Presenter - презентер содержит основную логику п
 
 Событие: `success.close` по кнопке.
 
-#### Class Api
-Обёртка над fetch.
-
-Поля: `baseUrl`, `options`.
-
-Методы: `get`, `post`, защищённый `handleResponse`.
-
 #### Class EventEmitter
 Брокер событий.
 
