@@ -115,8 +115,22 @@ events.on('productList.change', () => {
     gallery.render({catalog: instances});
 });
 
+// Обработка ошибки загрузки товаров на всякий случай
+events.on('productList.error', (data: { error: string }) => {
+    console.error('Ошибка загрузки каталога:', data.error);
+    const gallery = new Gallery(galleryContainer);
+    gallery.render({catalog: []}); 
+});
+
 // Загружаем товары и инициируем первичную отрисовку каталога
-productsModel.setProductList(await larek.getProducts())
+larek.getProducts()
+    .then((products) => {
+        productsModel.setProductList(products);
+    })
+    .catch((error) => {
+        console.error('Ошибка загрузки товаров:', error);
+        events.emit('productList.error', { error: error.message || 'Не удалось загрузить товары' });
+    });
 
 events.on('card.preview', (data: { id: string }) => {
     const cardPreview = new CardPreview(events, cloneTemplate<HTMLElement>(templateCardPreview));
